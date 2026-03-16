@@ -117,6 +117,7 @@ def train(args, train_dataset, model, tokenizer):
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
+    os.makedirs(args.output_dir, exist_ok=True)
     prof_schedule = torch.profiler.schedule(wait=0, warmup=1, active=3)
     def trace_handler(p):
         p.export_chrome_trace(os.path.join(args.output_dir, f"trace_rank{args.local_rank}.json"))
