@@ -176,8 +176,7 @@ def train(args, train_dataset, model, tokenizer):
         
         ##################################################
         # TODO(cos568): call evaluate() here to get the model performance after every epoch. (expect one line of code)
-        if args.local_rank in [-1, 0]:
-            evaluate(args, model, tokenizer, prefix="")
+        evaluate(args, model, tokenizer, prefix="")
         ##################################################
 
     if num_timed_steps > 0:
@@ -195,7 +194,7 @@ def evaluate(args, model, tokenizer, prefix=""):
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
         eval_dataset = load_and_cache_examples(args, eval_task, tokenizer, evaluate=True)
 
-        if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
+        if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir)
 
         args.eval_batch_size = args.per_device_eval_batch_size
@@ -446,8 +445,7 @@ def main():
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Evaluation
-    if args.local_rank in [-1, 0]:
-        evaluate(args, model, tokenizer, prefix="")
+    evaluate(args, model, tokenizer, prefix="")
 
 if __name__ == "__main__":
     main()
