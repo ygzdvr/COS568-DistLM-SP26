@@ -118,14 +118,10 @@ def train(args, train_dataset, model, tokenizer):
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
     os.makedirs(args.output_dir, exist_ok=True)
-    prof_schedule = torch.profiler.schedule(wait=0, warmup=1, active=3)
-    def trace_handler(p):
-        p.export_chrome_trace(os.path.join(args.output_dir, f"trace_rank{args.local_rank}.json"))
 
     with torch.profiler.profile(
         activities=[torch.profiler.ProfilerActivity.CPU],
-        schedule=prof_schedule,
-        on_trace_ready=trace_handler,
+        schedule=torch.profiler.schedule(wait=0, warmup=1, active=3, repeat=1),
     ) as prof:
         for _ in train_iterator:
             epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
@@ -180,10 +176,12 @@ def train(args, train_dataset, model, tokenizer):
                 train_iterator.close()
                 break
 
-            ##################################################
-            # TODO(cos568): call evaluate() here to get the model performance after every epoch. (expect one line of code)
-            evaluate(args, model, tokenizer, prefix="")
-            ##################################################
+    prof.export_chrome_trace(os.path.join(args.output_dir, f"trace_rank{args.local_rank}.json"))
+
+    ##################################################
+    # TODO(cos568): call evaluate() here to get the model performance after every epoch. (expect one line of code)
+    evaluate(args, model, tokenizer, prefix="")
+    ##################################################
 
     if num_timed_steps > 0:
         logger.info("Average time per iteration (excluding first): %.4f s", total_time / num_timed_steps)
