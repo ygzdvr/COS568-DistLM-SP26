@@ -85,4 +85,68 @@ plt.savefig("figures/iteration_time.png", dpi=150)
 plt.close()
 print("Saved figures/iteration_time.png")
 
+# Figure 4: Task 4 – Communication overhead per step (stacked bar)
+
+t4_methods = ["Gather/Scatter", "All-Reduce", "DDP"]
+
+total_step_us  = [78_402_152.192 / 3, 24_896_765.782 / 3, 19_873_801.033 / 3]
+total_comm_us  = [67_530_431.503 / 3, 17_485_030.083 / 3, None]  # DDP is overlapped
+compute_us     = [t - c for t, c in zip(total_step_us[:2], total_comm_us[:2])]
+
+ar_compute_us  = compute_us[1]  # ~2,470,508 µs
+ddp_total_us   = total_step_us[2]
+ddp_blocking_comm_us = ddp_total_us - ar_compute_us
+
+comm_us   = [total_comm_us[0], total_comm_us[1], ddp_blocking_comm_us]
+comp_us   = [compute_us[0],    compute_us[1],    ar_compute_us]
+comm_pct  = [c / t * 100 for c, t in zip(comm_us, total_step_us)]
+comp_pct  = [100 - p for p in comm_pct]
+
+fig, ax = plt.subplots(figsize=(7, 4))
+x = np.arange(len(t4_methods))
+width = 0.5
+bar_comp = ax.bar(x, comp_pct, width, label="Compute", color=["#93c5fd", "#fca5a5", "#86efac"])
+bar_comm = ax.bar(x, comm_pct, width, bottom=comp_pct, label="Communication",
+                  color=["#2563eb", "#dc2626", "#16a34a"])
+
+for i, (cp, cm) in enumerate(zip(comp_pct, comm_pct)):
+    ax.text(i, cp / 2,        f"{cp:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+    ax.text(i, cp + cm / 2,   f"{cm:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+
+ax.set_xticks(x)
+ax.set_xticklabels(t4_methods)
+ax.set_ylabel("Percentage of Step Time (%)")
+ax.set_title("Task 4 – Communication vs Compute Overhead per Step\n(DDP: estimated blocking comm after overlap)")
+ax.set_ylim(0, 110)
+ax.legend(loc="upper right")
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+plt.tight_layout()
+plt.savefig("figures/task4_comm_overhead.png", dpi=150)
+plt.close()
+print("Saved figures/task4_comm_overhead.png")
+
+# Figure 5: Task 4 – Duration of 3 Profiled Training Steps
+gs_steps = [26_357_103.61, 26_138_360.417, 25_906_688.165]
+ar_steps = [ 8_448_386.401,  8_114_933.342,  8_333_446.039]
+ddp_steps= [ 6_743_720.735,  6_582_409.686,  6_547_670.612]
+
+step_labels = ["Step 1\n(warmup skipped)", "Step 2", "Step 3"]
+x = np.arange(len(step_labels))
+width = 0.25
+
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.bar(x - width, [v/1e6 for v in gs_steps],  width, label="Gather/Scatter", color="#2563eb")
+ax.bar(x,         [v/1e6 for v in ar_steps],  width, label="All-Reduce",     color="#dc2626")
+ax.bar(x + width, [v/1e6 for v in ddp_steps], width, label="DDP",            color="#16a34a")
+ax.set_xticks(x)
+ax.set_xticklabels(step_labels)
+ax.set_ylabel("Step Duration (s)")
+ax.set_title("Task 4 – Duration of 3 Profiled Training Steps")
+ax.legend()
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+plt.tight_layout()
+plt.savefig("figures/task4_step_durations.png", dpi=150)
+plt.close()
+print("Saved figures/task4_step_durations.png")
+
 print("Done.")
