@@ -145,6 +145,7 @@ def train(args, train_dataset, model, tokenizer):
                 scheduler.step() # Update learning rate schedule
                 model.zero_grad()
                 global_step += 1
+                logger.info("Step %d, Loss: %f", global_step - 1, loss.item())
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
