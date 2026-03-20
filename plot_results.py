@@ -1,6 +1,7 @@
 import re
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.patches as mpatches
 import numpy as np
 
 def extract_losses(path):
@@ -86,39 +87,57 @@ plt.close()
 print("Saved figures/iteration_time.png")
 
 # Figure 4: Task 4 – Communication overhead per step (stacked bar)
+# GS and AR: directly measured from trace (blocking gloo time / step time)
+# DDP: shown as 100% step time (undivided) with an annotation — gloo ops are
+#       overlapped across step boundaries (149.88% of step in trace), so a
+#       compute/comm split is not meaningful.
 
 t4_methods = ["Gather/Scatter", "All-Reduce", "DDP"]
 
-total_step_us  = [78_402_152.192 / 3, 24_896_765.782 / 3, 19_873_801.033 / 3]
-total_comm_us  = [67_530_431.503 / 3, 17_485_030.083 / 3, None]  # DDP is overlapped
-compute_us     = [t - c for t, c in zip(total_step_us[:2], total_comm_us[:2])]
+total_step_us = [78_402_152.192 / 3, 24_896_765.782 / 3, 19_873_801.033 / 3]
+total_comm_us = [67_452_580.982 / 3, 17_485_030.083 / 3]
+compute_us    = [total_step_us[i] - total_comm_us[i] for i in range(2)]
 
-ar_compute_us  = compute_us[1]  # ~2,470,508 µs
-ddp_total_us   = total_step_us[2]
-ddp_blocking_comm_us = ddp_total_us - ar_compute_us
+comm_pct = [c / t * 100 for c, t in zip(total_comm_us, total_step_us[:2])]
+comp_pct = [100 - p for p in comm_pct]
 
-comm_us   = [total_comm_us[0], total_comm_us[1], ddp_blocking_comm_us]
-comp_us   = [compute_us[0],    compute_us[1],    ar_compute_us]
-comm_pct  = [c / t * 100 for c, t in zip(comm_us, total_step_us)]
-comp_pct  = [100 - p for p in comm_pct]
+# DDP bar: show full step as a single solid block (no artificial split)
+ddp_comm_pct = 100.0
+ddp_comp_pct = 0.0
+
+all_comp_pct = comp_pct + [ddp_comp_pct]
+all_comm_pct = comm_pct + [ddp_comm_pct]
 
 fig, ax = plt.subplots(figsize=(7, 4))
 x = np.arange(len(t4_methods))
 width = 0.5
-bar_comp = ax.bar(x, comp_pct, width, label="Compute", color=["#93c5fd", "#fca5a5", "#86efac"])
-bar_comm = ax.bar(x, comm_pct, width, bottom=comp_pct, label="Communication",
-                  color=["#2563eb", "#dc2626", "#16a34a"])
 
+bar_comp = ax.bar(x[:2], comp_pct, width, label="Compute",
+                  color=["#93c5fd", "#fca5a5"], hatch="///", edgecolor="white")
+bar_comm = ax.bar(x[:2], comm_pct, width, bottom=comp_pct, label="Communication",
+                  color=["#2563eb", "#dc2626"], edgecolor="white")
+# DDP: single solid bar
+ax.bar([x[2]], [100], width, color="#16a34a", edgecolor="white", label="_nolegend_")
+
+# Labels for GS and AR
 for i, (cp, cm) in enumerate(zip(comp_pct, comm_pct)):
-    ax.text(i, cp / 2,        f"{cp:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
-    ax.text(i, cp + cm / 2,   f"{cm:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+    ax.text(i, cp / 2,      f"{cp:.1f}%", ha="center", va="center", fontsize=9, color="black", fontweight="bold")
+    ax.text(i, cp + cm / 2, f"{cm:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+
+# DDP annotation
+ax.text(x[2], 50, "Overlapped\n(149.9% of step\nin trace)",
+        ha="center", va="center", fontsize=8.5, color="white", fontweight="bold")
 
 ax.set_xticks(x)
 ax.set_xticklabels(t4_methods)
 ax.set_ylabel("Percentage of Step Time (%)")
-ax.set_title("Task 4 – Communication vs Compute Overhead per Step\n(DDP: estimated blocking comm after overlap)")
+ax.set_title("Task 4 – Communication vs Compute Overhead per Step\n(DDP: gloo ops span step boundaries — not separable)")
 ax.set_ylim(0, 110)
-ax.legend(loc="upper right")
+legend_elements = [
+    mpatches.Patch(facecolor="white", edgecolor="black", hatch="///", label="Compute"),
+    mpatches.Patch(facecolor="white", edgecolor="black", label="Communication"),
+]
+ax.legend(handles=legend_elements, loc="upper right")
 ax.grid(axis="y", linestyle="--", alpha=0.4)
 plt.tight_layout()
 plt.savefig("figures/task4_comm_overhead.png", dpi=150)
