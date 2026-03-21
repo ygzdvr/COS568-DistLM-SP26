@@ -22,7 +22,8 @@ def extract_accuracies(path):
                 accs.append(float(m.group(1)))
     return accs
 
-# Task 1 – per-epoch accuracy
+# Task 1 – per-step losses and per-epoch accuracy
+losses_1 = extract_losses("logs/task1.log")
 task1_epochs   = [1, 2, 3]
 task1_accuracy = [0.628158844765343, 0.6498194945848376, 0.6209386281588448]
 
@@ -52,7 +53,27 @@ plt.savefig("figures/task1_accuracy.png", dpi=150)
 plt.close()
 print("Saved figures/task1_accuracy.png")
 
-# Figure 2: Loss curves Tasks 2a / 2b / 3
+# Figure 2: Task 1 – per-step loss curve (all 117 steps, 3 epochs)
+
+fig, ax = plt.subplots(figsize=(8, 4))
+steps_1 = list(range(len(losses_1)))
+ax.plot(steps_1, losses_1, linewidth=1.5, color="#2563eb")
+# Epoch boundary lines
+for epoch_end in [39, 78]:
+    ax.axvline(x=epoch_end, color="gray", linestyle="--", linewidth=1, alpha=0.6)
+    ax.text(epoch_end + 0.5, max(losses_1) * 0.98,
+            f"Epoch {epoch_end // 39 + 1}", fontsize=8, color="gray", va="top")
+ax.text(1, max(losses_1) * 0.98, "Epoch 1", fontsize=8, color="gray", va="top")
+ax.set_xlabel("Training Step")
+ax.set_ylabel("Loss")
+ax.set_title("Task 1 – Per-Step Loss Curve (3 Epochs, Single Node)")
+ax.grid(axis="y", linestyle="--", alpha=0.5)
+plt.tight_layout()
+plt.savefig("figures/task1_loss_curve.png", dpi=150)
+plt.close()
+print("Saved figures/task1_loss_curve.png")
+
+# Figure 3 (was 2): Loss curves Tasks 2a / 2b / 3
 
 fig, ax = plt.subplots(figsize=(8, 4))
 ax.plot(steps, losses_2a, label="2(a) Gather/Scatter", linewidth=2, color="#2563eb")
@@ -87,10 +108,6 @@ plt.close()
 print("Saved figures/iteration_time.png")
 
 # Figure 4: Task 4 – Communication overhead per step (stacked bar)
-# GS and AR: directly measured from trace (blocking gloo time / step time)
-# DDP: shown as 100% step time (undivided) with an annotation — gloo ops are
-#       overlapped across step boundaries (149.88% of step in trace), so a
-#       compute/comm split is not meaningful.
 
 t4_methods = ["Gather/Scatter", "All-Reduce", "DDP"]
 
@@ -119,12 +136,10 @@ bar_comm = ax.bar(x[:2], comm_pct, width, bottom=comp_pct, label="Communication"
 # DDP: single solid bar
 ax.bar([x[2]], [100], width, color="#16a34a", edgecolor="white", label="_nolegend_")
 
-# Labels for GS and AR
 for i, (cp, cm) in enumerate(zip(comp_pct, comm_pct)):
     ax.text(i, cp / 2,      f"{cp:.1f}%", ha="center", va="center", fontsize=9, color="black", fontweight="bold")
     ax.text(i, cp + cm / 2, f"{cm:.1f}%", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
 
-# DDP annotation
 ax.text(x[2], 50, "Overlapped\n(149.9% of step\nin trace)",
         ha="center", va="center", fontsize=8.5, color="white", fontweight="bold")
 
