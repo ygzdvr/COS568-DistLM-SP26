@@ -22,12 +22,12 @@ def extract_accuracies(path):
                 accs.append(float(m.group(1)))
     return accs
 
-# Task 1 – per-step losses and per-epoch accuracy
+# Task 1 Plot for Per-Step Losses and Per-Epoch Accuracy
 losses_1 = extract_losses("logs/task1.log")
 task1_epochs   = [1, 2, 3]
 task1_accuracy = [0.628158844765343, 0.6498194945848376, 0.6209386281588448]
 
-# Tasks 2a / 2b / 3 – loss curves (node 0 only; all nodes identical)
+# Tasks 2a / 2b / 3: Loss Curves on Node 0 (all nodes identical)
 losses_2a = extract_losses("logs/task2a/task2a-node0.log")
 losses_2b = extract_losses("logs/task2b/task2b-node0.log")
 losses_3  = extract_losses("logs/task3/task3-node0.log")
@@ -37,13 +37,13 @@ steps = list(range(len(losses_2a)))
 methods      = ["Gather/Scatter\n(2a)", "All-Reduce\n(2b)", "DDP\n(3)"]
 avg_times    = [24.7186, 7.3887, 6.3047]
 
-# Figure 1: Task 1 accuracy per epoch
+# Figure 1: Plot for Accuracy per Epoch
 
 fig, ax = plt.subplots(figsize=(5, 3.5))
 ax.plot(task1_epochs, task1_accuracy, marker="o", linewidth=2, color="#2563eb")
 ax.set_xlabel("Epoch")
 ax.set_ylabel("Accuracy")
-ax.set_title("Task 1 – BERT Fine-tuning on RTE (Single Node)")
+ax.set_title("Task 1 Plot for BERT Fine-tuning on RTE (Single Node)")
 ax.set_xticks(task1_epochs)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.4f}"))
 ax.set_ylim(0.60, 0.68)
@@ -53,7 +53,7 @@ plt.savefig("figures/task1_accuracy.png", dpi=150)
 plt.close()
 print("Saved figures/task1_accuracy.png")
 
-# Figure 2: Task 1 – per-step loss curve (all 117 steps, 3 epochs)
+# Figure 2: Plot for Per-Step Loss Curve on Single Node (3 Epochs)
 
 fig, ax = plt.subplots(figsize=(8, 4))
 steps_1 = list(range(len(losses_1)))
@@ -66,14 +66,14 @@ for epoch_end in [39, 78]:
 ax.text(1, max(losses_1) * 0.98, "Epoch 1", fontsize=8, color="gray", va="top")
 ax.set_xlabel("Training Step")
 ax.set_ylabel("Loss")
-ax.set_title("Task 1 – Per-Step Loss Curve (3 Epochs, Single Node)")
+ax.set_title("Task 1 Plot for Per-Step Loss Curve on Single Node (3 Epochs)")
 ax.grid(axis="y", linestyle="--", alpha=0.5)
 plt.tight_layout()
 plt.savefig("figures/task1_loss_curve.png", dpi=150)
 plt.close()
 print("Saved figures/task1_loss_curve.png")
 
-# Figure 3 (was 2): Loss curves Tasks 2a / 2b / 3
+# Figure 3: Plot for Loss Curves on Node 0 (all methods identical)
 
 fig, ax = plt.subplots(figsize=(8, 4))
 ax.plot(steps, losses_2a, label="2(a) Gather/Scatter", linewidth=2, color="#2563eb")
@@ -83,7 +83,7 @@ ax.plot(steps, losses_3,  label="3 DDP",               linewidth=2, color="#16a3
         linestyle=":")
 ax.set_xlabel("Training Step")
 ax.set_ylabel("Loss")
-ax.set_title("Loss Curve – Node 0 (all methods identical)")
+ax.set_title("Loss Curve on Node 0 (all methods identical)")
 ax.legend()
 ax.grid(axis="y", linestyle="--", alpha=0.5)
 plt.tight_layout()
@@ -107,7 +107,7 @@ plt.savefig("figures/iteration_time.png", dpi=150)
 plt.close()
 print("Saved figures/iteration_time.png")
 
-# Figure 4: Task 4 – Communication overhead per step (stacked bar)
+# Figure 4: Plot for Communication Overhead per Step (stacked bar)
 
 t4_methods = ["Gather/Scatter", "All-Reduce", "DDP"]
 
@@ -133,7 +133,7 @@ bar_comp = ax.bar(x[:2], comp_pct, width, label="Compute",
                   color=["#93c5fd", "#fca5a5"], hatch="///", edgecolor="white")
 bar_comm = ax.bar(x[:2], comm_pct, width, bottom=comp_pct, label="Communication",
                   color=["#2563eb", "#dc2626"], edgecolor="white")
-# DDP: single solid bar
+# DDP: single solid bar since it overlaps
 ax.bar([x[2]], [100], width, color="#16a34a", edgecolor="white", label="_nolegend_")
 
 for i, (cp, cm) in enumerate(zip(comp_pct, comm_pct)):
@@ -146,7 +146,7 @@ ax.text(x[2], 50, "Overlapped\n(149.9% of step\nin trace)",
 ax.set_xticks(x)
 ax.set_xticklabels(t4_methods)
 ax.set_ylabel("Percentage of Step Time (%)")
-ax.set_title("Task 4 – Communication vs Compute Overhead per Step\n(DDP: gloo ops span step boundaries — not separable)")
+ax.set_title("Task 4 Plot for Communication vs Compute Overhead per Step\n(DDP: gloo ops span step boundaries — not separable)")
 ax.set_ylim(0, 110)
 legend_elements = [
     mpatches.Patch(facecolor="white", edgecolor="black", hatch="///", label="Compute"),
@@ -159,7 +159,7 @@ plt.savefig("figures/task4_comm_overhead.png", dpi=150)
 plt.close()
 print("Saved figures/task4_comm_overhead.png")
 
-# Figure 5: Task 4 – Duration of 3 Profiled Training Steps
+# Figure 5: Plot for Duration of 3 Profiled Training Steps
 gs_steps = [26_357_103.61, 26_138_360.417, 25_906_688.165]
 ar_steps = [ 8_448_386.401,  8_114_933.342,  8_333_446.039]
 ddp_steps= [ 6_743_720.735,  6_582_409.686,  6_547_670.612]
@@ -175,7 +175,7 @@ ax.bar(x + width, [v/1e6 for v in ddp_steps], width, label="DDP",            col
 ax.set_xticks(x)
 ax.set_xticklabels(step_labels)
 ax.set_ylabel("Step Duration (s)")
-ax.set_title("Task 4 – Duration of 3 Profiled Training Steps")
+ax.set_title("Task 4 Plot for Duration of 3 Profiled Training Steps")
 ax.legend()
 ax.grid(axis="y", linestyle="--", alpha=0.4)
 plt.tight_layout()
